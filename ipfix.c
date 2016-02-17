@@ -23,6 +23,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <time.h>
 #include "common.h"
 #include "log.h"
 #include "treetype.h"
@@ -788,7 +789,7 @@ send_ipfix(struct FLOW **flows, int num_flows, int nfsock,
 	struct timeval now;
 	u_int offset, last_af, i, j, num_packets, inc, last_valid;
 	socklen_t errsz;
-	int err, r;
+	int err, nflows;
 	u_int records;
 	u_char packet[IPFIX_SOFTFLOWD_MAX_PACKET_SIZE];
 	struct timeval *system_boot_time = &param->system_boot_time;
@@ -868,24 +869,23 @@ send_ipfix(struct FLOW **flows, int num_flows, int nfsock,
 				offset += sizeof(*dh);
 			}
 
-			r = ipfix_flow_to_flowset(flows[i + j], packet + offset,
+			nflows = ipfix_flow_to_flowset(flows[i + j], packet + offset,
 			    sizeof(packet) - offset, ifidx, system_boot_time, &inc, param);
-			if (r <= 0) {
+			if (nflows <= 0) {
 				/* yank off data header, if we had to go back */
 				if (last_valid)
 					offset = last_valid;
 				break;
 			}
-			records += (u_int)r;
+			records += (u_int) nflows;
 			offset += inc;
 			dh->length += inc;
 			last_valid = 0; /* Don't clobber this header now */
 			if (verbose_flag) {
-				logit(LOG_DEBUG, "Flow %d/%d: "
-				    "r %d offset %d ie %04x len %d(0x%04x)",
-				    r, i, j, offset, 
-				    dh->set_id, dh->length, 
-				    dh->length);
+				logit(LOG_DEBUG, "Flow %d/%d: r %d offset %d setID %d len %d(0x%04x)",
+					  nflows, i, j, offset,
+					  ntohs(dh->set_id), dh->length,
+					  dh->length);
 			}
 		}
 		/* Don't finish header if it has already been done */
