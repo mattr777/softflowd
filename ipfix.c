@@ -155,16 +155,19 @@ struct IPFIX_SOFTFLOWD_OPTION_TEMPLATE {
 
 /* softflowd data set */
 struct IPFIX_SOFTFLOWD_DATA_COMMON {
-	u_int32_t octetDeltaCount, packetDeltaCount;
+	u_int64_t octetDeltaCount, packetDeltaCount;
 	u_int32_t ingressInterface, egressInterface;
 	u_int16_t sourceTransportPort, destinationTransportPort;
-	u_int8_t protocolIdentifier, tcpControlBits, ipVersion, ipClassOfService;
+	u_int8_t protocolIdentifier;
+    u_int16_t tcpControlBits;
+    u_int8_t ipVersion, ipClassOfService;
 	u_int16_t icmpTypeCode, vlanId;
 } __packed;
 
 struct IPFIX_SOFTFLOWD_DATA_BIDIRECTION {
-	u_int32_t octetDeltaCount, packetDeltaCount;
-	u_int8_t tcpControlBits, ipClassOfService;
+	u_int64_t octetDeltaCount, packetDeltaCount;
+	u_int16_t tcpControlBits;
+    u_int8_t ipClassOfService;
 	u_int16_t icmpTypeCode;
 } __packed;
 
@@ -181,28 +184,28 @@ union IPFIX_SOFTFLOWD_DATA_TIME {
 
 struct IPFIX_SOFTFLOWD_DATA_V4 {
 	u_int32_t sourceIPv4Address, destinationIPv4Address;
-	struct IPFIX_SOFTFLOWD_DATA_COMMON c;
-	union  IPFIX_SOFTFLOWD_DATA_TIME t;
+	struct IPFIX_SOFTFLOWD_DATA_COMMON data_common;
+	union  IPFIX_SOFTFLOWD_DATA_TIME data_time;
 } __packed;
 
 struct IPFIX_SOFTFLOWD_BIDIRECTION_DATA_V4 {
 	u_int32_t sourceIPv4Address, destinationIPv4Address;
-	struct IPFIX_SOFTFLOWD_DATA_COMMON c;
-	struct IPFIX_SOFTFLOWD_DATA_BIDIRECTION b;
-	union  IPFIX_SOFTFLOWD_DATA_TIME t;
+	struct IPFIX_SOFTFLOWD_DATA_COMMON data_common;
+	struct IPFIX_SOFTFLOWD_DATA_BIDIRECTION data_bidirection;
+	union  IPFIX_SOFTFLOWD_DATA_TIME data_time;
 } __packed;
 
 struct IPFIX_SOFTFLOWD_DATA_V6 {
 	struct in6_addr sourceIPv6Address, destinationIPv6Address;
-	struct IPFIX_SOFTFLOWD_DATA_COMMON c;
-	union  IPFIX_SOFTFLOWD_DATA_TIME t;
+	struct IPFIX_SOFTFLOWD_DATA_COMMON data_common;
+	union  IPFIX_SOFTFLOWD_DATA_TIME data_time;
 } __packed;
 
 struct IPFIX_SOFTFLOWD_BIDIRECTION_DATA_V6 {
 	struct in6_addr sourceIPv6Address, destinationIPv6Address;
-	struct IPFIX_SOFTFLOWD_DATA_COMMON c;
-	struct IPFIX_SOFTFLOWD_DATA_BIDIRECTION b;
-	union  IPFIX_SOFTFLOWD_DATA_TIME t;
+	struct IPFIX_SOFTFLOWD_DATA_COMMON data_common;
+	struct IPFIX_SOFTFLOWD_DATA_BIDIRECTION data_bidirection;
+	union  IPFIX_SOFTFLOWD_DATA_TIME data_time;
 } __packed;
 
 struct IPFIX_SOFTFLOWD_OPTION_DATA {
@@ -254,9 +257,9 @@ ipfix_init_template(struct FLOWTRACKPARAMETERS *param)
 	v4_template.r[1].ie = htons(IPFIX_destinationIPv4Address);
 	v4_template.r[1].length = htons(4);
 	v4_template.r[2].ie = htons(IPFIX_octetDeltaCount);
-	v4_template.r[2].length = htons(4);
+	v4_template.r[2].length = htons(8);
 	v4_template.r[3].ie = htons(IPFIX_packetDeltaCount);
-	v4_template.r[3].length = htons(4);
+	v4_template.r[3].length = htons(8);
 	v4_template.r[4].ie = htons(IPFIX_ingressInterface);
 	v4_template.r[4].length = htons(4);
 	v4_template.r[5].ie = htons(IPFIX_egressInterface);
@@ -268,7 +271,7 @@ ipfix_init_template(struct FLOWTRACKPARAMETERS *param)
 	v4_template.r[8].ie = htons(IPFIX_protocolIdentifier);
 	v4_template.r[8].length = htons(1);
 	v4_template.r[9].ie = htons(IPFIX_tcpControlBits);
-	v4_template.r[9].length = htons(1);
+	v4_template.r[9].length = htons(2);
 	v4_template.r[10].ie = htons(IPFIX_ipVersion);
 	v4_template.r[10].length = htons(1);
 	v4_template.r[11].ie = htons(IPFIX_ipClassOfService);
@@ -279,29 +282,29 @@ ipfix_init_template(struct FLOWTRACKPARAMETERS *param)
 	v4_template.r[13].length = htons(2);
 	if (param->time_format == 's') {
 		v4_template.r[14].ie = htons(IPFIX_flowStartSeconds);
-		v4_template.r[14].length = htons(sizeof(u_int32_t));
+		v4_template.r[14].length = htons(4);
 		v4_template.r[15].ie = htons(IPFIX_flowEndSeconds);
-		v4_template.r[15].length = htons(sizeof(u_int32_t));
+		v4_template.r[15].length = htons(4);
 	} else if (param->time_format == 'm') {
 		v4_template.r[14].ie = htons(IPFIX_flowStartMilliSeconds);
-		v4_template.r[14].length = htons(sizeof(u_int64_t));
+		v4_template.r[14].length = htons(8);
 		v4_template.r[15].ie = htons(IPFIX_flowEndMilliSeconds);
-		v4_template.r[15].length = htons(sizeof(u_int64_t));
+		v4_template.r[15].length = htons(8);
 	} else if (param->time_format == 'M') {
 		v4_template.r[14].ie = htons(IPFIX_flowStartMicroSeconds);
-		v4_template.r[14].length = htons(sizeof(u_int64_t));
+		v4_template.r[14].length = htons(8);
 		v4_template.r[15].ie = htons(IPFIX_flowEndMicroSeconds);
-		v4_template.r[15].length = htons(sizeof(u_int64_t));
+		v4_template.r[15].length = htons(8);
 	} else if (param->time_format == 'n') {
 		v4_template.r[14].ie = htons(IPFIX_flowStartNanoSeconds);
-		v4_template.r[14].length = htons(sizeof(u_int64_t));
+		v4_template.r[14].length = htons(8);
 		v4_template.r[15].ie = htons(IPFIX_flowEndNanoSeconds);
-		v4_template.r[15].length = htons(sizeof(u_int64_t));
+		v4_template.r[15].length = htons(8);
 	} else {
 		v4_template.r[14].ie = htons(IPFIX_flowStartSysUpTime);
-		v4_template.r[14].length = htons(sizeof(u_int32_t));
+		v4_template.r[14].length = htons(4);
 		v4_template.r[15].ie = htons(IPFIX_flowEndSysUpTime);
-		v4_template.r[15].length = htons(sizeof(u_int32_t));
+		v4_template.r[15].length = htons(4);
 	}
 
 	bzero(&v6_template, sizeof(v6_template));
@@ -314,9 +317,9 @@ ipfix_init_template(struct FLOWTRACKPARAMETERS *param)
 	v6_template.r[1].ie = htons(IPFIX_destinationIPv6Address);
 	v6_template.r[1].length = htons(16);
 	v6_template.r[2].ie = htons(IPFIX_octetDeltaCount);
-	v6_template.r[2].length = htons(4);
+	v6_template.r[2].length = htons(8);
 	v6_template.r[3].ie = htons(IPFIX_packetDeltaCount);
-	v6_template.r[3].length = htons(4);
+	v6_template.r[3].length = htons(8);
 	v6_template.r[4].ie = htons(IPFIX_ingressInterface);
 	v6_template.r[4].length = htons(4);
 	v6_template.r[5].ie = htons(IPFIX_egressInterface);
@@ -328,7 +331,7 @@ ipfix_init_template(struct FLOWTRACKPARAMETERS *param)
 	v6_template.r[8].ie = htons(IPFIX_protocolIdentifier);
 	v6_template.r[8].length = htons(1);
 	v6_template.r[9].ie = htons(IPFIX_tcpControlBits);
-	v6_template.r[9].length = htons(1);
+	v6_template.r[9].length = htons(2);
 	v6_template.r[10].ie = htons(IPFIX_ipVersion);
 	v6_template.r[10].length = htons(1);
 	v6_template.r[11].ie = htons(IPFIX_ipClassOfService);
@@ -339,29 +342,29 @@ ipfix_init_template(struct FLOWTRACKPARAMETERS *param)
 	v6_template.r[13].length = htons(2);
 	if (param->time_format == 's') {
 		v6_template.r[14].ie = htons(IPFIX_flowStartSeconds);
-		v6_template.r[14].length = htons(sizeof(u_int32_t));
+		v6_template.r[14].length = htons(4);
 		v6_template.r[15].ie = htons(IPFIX_flowEndSeconds);
-		v6_template.r[15].length = htons(sizeof(u_int32_t));
+		v6_template.r[15].length = htons(4);
 	} else if (param->time_format == 'm') {
 		v6_template.r[14].ie = htons(IPFIX_flowStartMilliSeconds);
-		v6_template.r[14].length = htons(sizeof(u_int64_t));
+		v6_template.r[14].length = htons(8);
 		v6_template.r[15].ie = htons(IPFIX_flowEndMilliSeconds);
-		v6_template.r[15].length = htons(sizeof(u_int64_t));
+		v6_template.r[15].length = htons(8);
 	} else if (param->time_format == 'M') {
 		v6_template.r[14].ie = htons(IPFIX_flowStartMicroSeconds);
-		v6_template.r[14].length = htons(sizeof(u_int64_t));
+		v6_template.r[14].length = htons(8);
 		v6_template.r[15].ie = htons(IPFIX_flowEndMicroSeconds);
-		v6_template.r[15].length = htons(sizeof(u_int64_t));
+		v6_template.r[15].length = htons(8);
 	} else if (param->time_format == 'n') {
 		v6_template.r[14].ie = htons(IPFIX_flowStartNanoSeconds);
-		v6_template.r[14].length = htons(sizeof(u_int64_t));
+		v6_template.r[14].length = htons(8);
 		v6_template.r[15].ie = htons(IPFIX_flowEndNanoSeconds);
-		v6_template.r[15].length = htons(sizeof(u_int64_t));
+		v6_template.r[15].length = htons(8);
 	} else {
 		v6_template.r[14].ie = htons(IPFIX_flowStartSysUpTime);
-		v6_template.r[14].length = htons(sizeof(u_int32_t));
+		v6_template.r[14].length = htons(4);
 		v6_template.r[15].ie = htons(IPFIX_flowEndSysUpTime);
-		v6_template.r[15].length = htons(sizeof(u_int32_t));
+		v6_template.r[15].length = htons(4);
 	}
 }
 
@@ -378,9 +381,9 @@ ipfix_init_template_bidirection(struct FLOWTRACKPARAMETERS *param)
 	v4_bidirection_template.r[1].ie = htons(IPFIX_destinationIPv4Address);
 	v4_bidirection_template.r[1].length = htons(4);
 	v4_bidirection_template.r[2].ie = htons(IPFIX_octetDeltaCount);
-	v4_bidirection_template.r[2].length = htons(4);
+	v4_bidirection_template.r[2].length = htons(8);
 	v4_bidirection_template.r[3].ie = htons(IPFIX_packetDeltaCount);
-	v4_bidirection_template.r[3].length = htons(4);
+	v4_bidirection_template.r[3].length = htons(8);
 	v4_bidirection_template.r[4].ie = htons(IPFIX_ingressInterface);
 	v4_bidirection_template.r[4].length = htons(4);
 	v4_bidirection_template.r[5].ie = htons(IPFIX_egressInterface);
@@ -392,7 +395,7 @@ ipfix_init_template_bidirection(struct FLOWTRACKPARAMETERS *param)
 	v4_bidirection_template.r[8].ie = htons(IPFIX_protocolIdentifier);
 	v4_bidirection_template.r[8].length = htons(1);
 	v4_bidirection_template.r[9].ie = htons(IPFIX_tcpControlBits);
-	v4_bidirection_template.r[9].length = htons(1);
+	v4_bidirection_template.r[9].length = htons(2);
 	v4_bidirection_template.r[10].ie = htons(IPFIX_ipVersion);
 	v4_bidirection_template.r[10].length = htons(1);
 	v4_bidirection_template.r[11].ie = htons(IPFIX_ipClassOfService);
@@ -402,13 +405,13 @@ ipfix_init_template_bidirection(struct FLOWTRACKPARAMETERS *param)
 	v4_bidirection_template.r[13].ie = htons(IPFIX_vlanId);
 	v4_bidirection_template.r[13].length = htons(2);
 	v4_bidirection_template.v[0].ie = htons(IPFIX_octetDeltaCount | 0x8000);
-	v4_bidirection_template.v[0].length = htons(4);
+	v4_bidirection_template.v[0].length = htons(8);
 	v4_bidirection_template.v[0].pen = htonl(REVERSE_PEN);
 	v4_bidirection_template.v[1].ie = htons(IPFIX_packetDeltaCount | 0x8000);
-	v4_bidirection_template.v[1].length = htons(4);
+	v4_bidirection_template.v[1].length = htons(8);
 	v4_bidirection_template.v[1].pen = htonl(REVERSE_PEN);
 	v4_bidirection_template.v[2].ie = htons(IPFIX_tcpControlBits | 0x8000);
-	v4_bidirection_template.v[2].length = htons(1);
+	v4_bidirection_template.v[2].length = htons(2);
 	v4_bidirection_template.v[2].pen = htonl(REVERSE_PEN);
 	v4_bidirection_template.v[3].ie = htons(IPFIX_ipClassOfService | 0x8000);
 	v4_bidirection_template.v[3].length = htons(1);
@@ -418,29 +421,29 @@ ipfix_init_template_bidirection(struct FLOWTRACKPARAMETERS *param)
 	v4_bidirection_template.v[4].pen = htonl(REVERSE_PEN);
 	if (param->time_format == 's') {
 		v4_bidirection_template.t[0].ie = htons(IPFIX_flowStartSeconds);
-		v4_bidirection_template.t[0].length = htons(sizeof(u_int32_t));
+		v4_bidirection_template.t[0].length = htons(4);
 		v4_bidirection_template.t[1].ie = htons(IPFIX_flowEndSeconds);
-		v4_bidirection_template.t[1].length = htons(sizeof(u_int32_t));
+		v4_bidirection_template.t[1].length = htons(4);
 	} else if (param->time_format == 'm') {
 		v4_bidirection_template.t[0].ie = htons(IPFIX_flowStartMilliSeconds);
-		v4_bidirection_template.t[0].length = htons(sizeof(u_int64_t));
+		v4_bidirection_template.t[0].length = htons(8);
 		v4_bidirection_template.t[1].ie = htons(IPFIX_flowEndMilliSeconds);
-		v4_bidirection_template.t[1].length = htons(sizeof(u_int64_t));
+		v4_bidirection_template.t[1].length = htons(8);
 	} else if (param->time_format == 'M') {
 		v4_bidirection_template.t[0].ie = htons(IPFIX_flowStartMicroSeconds);
-		v4_bidirection_template.t[0].length = htons(sizeof(u_int64_t));
+		v4_bidirection_template.t[0].length = htons(8);
 		v4_bidirection_template.t[1].ie = htons(IPFIX_flowEndMicroSeconds);
-		v4_bidirection_template.t[1].length = htons(sizeof(u_int64_t));
+		v4_bidirection_template.t[1].length = htons(8);
 	} else if (param->time_format == 'n') {
 		v4_bidirection_template.t[0].ie = htons(IPFIX_flowStartNanoSeconds);
-		v4_bidirection_template.t[0].length = htons(sizeof(u_int64_t));
+		v4_bidirection_template.t[0].length = htons(8);
 		v4_bidirection_template.t[1].ie = htons(IPFIX_flowEndNanoSeconds);
-		v4_bidirection_template.t[1].length = htons(sizeof(u_int64_t));
+		v4_bidirection_template.t[1].length = htons(8);
 	} else {
 		v4_bidirection_template.t[0].ie = htons(IPFIX_flowStartSysUpTime);
-		v4_bidirection_template.t[0].length = htons(sizeof(u_int32_t));
+		v4_bidirection_template.t[0].length = htons(4);
 		v4_bidirection_template.t[1].ie = htons(IPFIX_flowEndSysUpTime);
-		v4_bidirection_template.t[1].length = htons(sizeof(u_int32_t));
+		v4_bidirection_template.t[1].length = htons(4);
 	}
 
 	bzero(&v6_bidirection_template, sizeof(v6_bidirection_template));
@@ -453,9 +456,9 @@ ipfix_init_template_bidirection(struct FLOWTRACKPARAMETERS *param)
 	v6_bidirection_template.r[1].ie = htons(IPFIX_destinationIPv6Address);
 	v6_bidirection_template.r[1].length = htons(16);
 	v6_bidirection_template.r[2].ie = htons(IPFIX_octetDeltaCount);
-	v6_bidirection_template.r[2].length = htons(4);
+	v6_bidirection_template.r[2].length = htons(8);
 	v6_bidirection_template.r[3].ie = htons(IPFIX_packetDeltaCount);
-	v6_bidirection_template.r[3].length = htons(4);
+	v6_bidirection_template.r[3].length = htons(8);
 	v6_bidirection_template.r[4].ie = htons(IPFIX_ingressInterface);
 	v6_bidirection_template.r[4].length = htons(4);
 	v6_bidirection_template.r[5].ie = htons(IPFIX_egressInterface);
@@ -467,7 +470,7 @@ ipfix_init_template_bidirection(struct FLOWTRACKPARAMETERS *param)
 	v6_bidirection_template.r[8].ie = htons(IPFIX_protocolIdentifier);
 	v6_bidirection_template.r[8].length = htons(1);
 	v6_bidirection_template.r[9].ie = htons(IPFIX_tcpControlBits);
-	v6_bidirection_template.r[9].length = htons(1);
+	v6_bidirection_template.r[9].length = htons(2);
 	v6_bidirection_template.r[10].ie = htons(IPFIX_ipVersion);
 	v6_bidirection_template.r[10].length = htons(1);
 	v6_bidirection_template.r[11].ie = htons(IPFIX_ipClassOfService);
@@ -483,7 +486,7 @@ ipfix_init_template_bidirection(struct FLOWTRACKPARAMETERS *param)
 	v6_bidirection_template.v[1].length = htons(4);
 	v6_bidirection_template.v[1].pen = htonl(REVERSE_PEN);
 	v6_bidirection_template.v[2].ie = htons(IPFIX_tcpControlBits | 0x8000);
-	v6_bidirection_template.v[2].length = htons(1);
+	v6_bidirection_template.v[2].length = htons(2);
 	v6_bidirection_template.v[2].pen = htonl(REVERSE_PEN);
 	v6_bidirection_template.v[3].ie = htons(IPFIX_ipClassOfService | 0x8000);
 	v6_bidirection_template.v[3].length = htons(1);
@@ -493,29 +496,29 @@ ipfix_init_template_bidirection(struct FLOWTRACKPARAMETERS *param)
 	v6_bidirection_template.v[4].pen = htonl(REVERSE_PEN);
 	if (param->time_format == 's') {
 		v6_bidirection_template.t[0].ie = htons(IPFIX_flowStartSeconds);
-		v6_bidirection_template.t[0].length = htons(sizeof(u_int32_t));
+		v6_bidirection_template.t[0].length = htons(4);
 		v6_bidirection_template.t[1].ie = htons(IPFIX_flowEndSeconds);
-		v6_bidirection_template.t[1].length = htons(sizeof(u_int32_t));
+		v6_bidirection_template.t[1].length = htons(4);
 	} else if (param->time_format == 'm') {
 		v6_bidirection_template.t[0].ie = htons(IPFIX_flowStartMilliSeconds);
-		v6_bidirection_template.t[0].length = htons(sizeof(u_int64_t));
+		v6_bidirection_template.t[0].length = htons(8);
 		v6_bidirection_template.t[1].ie = htons(IPFIX_flowEndMilliSeconds);
-		v6_bidirection_template.t[1].length = htons(sizeof(u_int64_t));
+		v6_bidirection_template.t[1].length = htons(8);
 	} else if (param->time_format == 'M') {
 		v6_bidirection_template.t[0].ie = htons(IPFIX_flowStartMicroSeconds);
-		v6_bidirection_template.t[0].length = htons(sizeof(u_int64_t));
+		v6_bidirection_template.t[0].length = htons(8);
 		v6_bidirection_template.t[1].ie = htons(IPFIX_flowEndMicroSeconds);
-		v6_bidirection_template.t[1].length = htons(sizeof(u_int64_t));
+		v6_bidirection_template.t[1].length = htons(8);
 	} else if (param->time_format == 'n') {
 		v6_bidirection_template.t[0].ie = htons(IPFIX_flowStartNanoSeconds);
-		v6_bidirection_template.t[0].length = htons(sizeof(u_int64_t));
+		v6_bidirection_template.t[0].length = htons(8);
 		v6_bidirection_template.t[1].ie = htons(IPFIX_flowEndNanoSeconds);
-		v6_bidirection_template.t[1].length = htons(sizeof(u_int64_t));
+		v6_bidirection_template.t[1].length = htons(8);
 	} else {
 		v6_bidirection_template.t[0].ie = htons(IPFIX_flowStartSysUpTime);
-		v6_bidirection_template.t[0].length = htons(sizeof(u_int32_t));
+		v6_bidirection_template.t[0].length = htons(4);
 		v6_bidirection_template.t[1].ie = htons(IPFIX_flowEndSysUpTime);
-		v6_bidirection_template.t[1].length = htons(sizeof(u_int32_t));
+		v6_bidirection_template.t[1].length = htons(4);
 	}
 }
 
@@ -570,31 +573,31 @@ ipfix_flow_to_flowset(const struct FLOW *flow, u_char *packet, u_int len,
 	case AF_INET:
 		freclen = sizeof(struct IPFIX_SOFTFLOWD_DATA_V4);
 		if (!(param->time_format == 'm' || param->time_format == 'M' || param->time_format == 'n')) {
-			freclen -= (sizeof(u_int64_t) - sizeof(u_int32_t)) * 2;
+			freclen -= 8;
 		}
 		memcpy(&d[0].d4.sourceIPv4Address, &flow->addr[0].v4, 4);
 		memcpy(&d[0].d4.destinationIPv4Address, &flow->addr[1].v4, 4);
 		memcpy(&d[1].d4.sourceIPv4Address, &flow->addr[1].v4, 4);
 		memcpy(&d[1].d4.destinationIPv4Address, &flow->addr[0].v4, 4);
-		data_common[0] = &d[0].d4.c;
-		data_common[1] = &d[1].d4.c;
-		data_time[0] = &d[0].d4.t;
-		data_time[1] = &d[1].d4.t;
+		data_common[0] = &d[0].d4.data_common;
+		data_common[1] = &d[1].d4.data_common;
+		data_time[0] = &d[0].d4.data_time;
+		data_time[1] = &d[1].d4.data_time;
 			data_common[0]->ipVersion = data_common[1]->ipVersion = 4;
 		break;
 	case AF_INET6:
 		freclen = sizeof(struct IPFIX_SOFTFLOWD_DATA_V6);
 		if (!(param->time_format == 'm' || param->time_format == 'M' || param->time_format == 'n')) {
-			freclen -= (sizeof(u_int64_t) - sizeof(u_int32_t)) * 2;
+			freclen -= 8;
 		}
 		memcpy(&d[0].d6.sourceIPv6Address, &flow->addr[0].v6, 16);
 		memcpy(&d[0].d6.destinationIPv6Address, &flow->addr[1].v6, 16);
 		memcpy(&d[1].d6.sourceIPv6Address, &flow->addr[1].v6, 16);
 		memcpy(&d[1].d6.destinationIPv6Address, &flow->addr[0].v6, 16);
-		data_common[0] = &d[0].d6.c;
-		data_common[1] = &d[1].d6.c;
-		data_time[0] = &d[0].d6.t;
-		data_time[1] = &d[1].d6.t;
+		data_common[0] = &d[0].d6.data_common;
+		data_common[1] = &d[1].d6.data_common;
+		data_time[0] = &d[0].d6.data_time;
+		data_time[1] = &d[1].d6.data_time;
 			data_common[0]->ipVersion = data_common[1]->ipVersion = 6;
 		break;
 	default:
@@ -695,9 +698,9 @@ ipfix_flow_to_bidirection_flowset(const struct FLOW *flow, u_char *packet,
 		}
 		memcpy(&d.d4.sourceIPv4Address, &flow->addr[0].v4, 4);
 		memcpy(&d.d4.destinationIPv4Address, &flow->addr[1].v4, 4);
-		dc = &d.d4.c;
-		db = &d.d4.b;
-		dt = &d.d4.t;
+		dc = &d.d4.data_common;
+		db = &d.d4.data_bidirection;
+		dt = &d.d4.data_time;
 		dc->ipVersion = 4;
 		break;
 	case AF_INET6:
@@ -707,9 +710,9 @@ ipfix_flow_to_bidirection_flowset(const struct FLOW *flow, u_char *packet,
 		}
 		memcpy(&d.d6.sourceIPv6Address, &flow->addr[0].v6, 16);
 		memcpy(&d.d6.destinationIPv6Address, &flow->addr[1].v6, 16);
-		dc = &d.d6.c;
-		db = &d.d6.b;
-		dt = &d.d6.t;
+		dc = &d.d6.data_common;
+		db = &d.d6.data_bidirection;
+		dt = &d.d6.data_time;
 		dc->ipVersion = 6;
 		break;
 	default:
