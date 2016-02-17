@@ -104,7 +104,7 @@ struct NETFLOW_SENDER {
 };
 
 /* Array of NetFlow export function that we know of. NB. nf[0] is default */
-static const struct NETFLOW_SENDER nf[] = {
+static const struct NETFLOW_SENDER netflow_sender[] = {
 	{ 5, send_netflow_v5, NULL, 0 },
 	{ 1, send_netflow_v1, NULL, 0 },
 	{ 9, send_netflow_v9, NULL, 1 },
@@ -1746,7 +1746,7 @@ main(int argc, char **argv)
 	dest_len = 0;
 	memset(&target, '\0', sizeof(target));
 	target.fd = -1;
-	target.dialect = &nf[0];
+	target.dialect = &netflow_sender[0];
 	hoplimit = -1;
 	bpf_prog = NULL;
 	ctlsock = -1;
@@ -1773,8 +1773,7 @@ main(int argc, char **argv)
 			break;
 		case 'i':
 			if (capfile != NULL || dev != NULL) {
-				fprintf(stderr, "Packet source already "
-				    "specified.\n\n");
+				fprintf(stderr, "Packet source already specified.\n\n");
 				usage();
 				exit(1);
 			}
@@ -1792,8 +1791,7 @@ main(int argc, char **argv)
 			break;
 		case 'r':
 			if (capfile != NULL || dev != NULL) {
-				fprintf(stderr, "Packet source already "
-				    "specified.\n\n");
+				fprintf(stderr, "Packet source already specified.\n\n");
 				usage();
 				exit(1);
 			}
@@ -1854,15 +1852,15 @@ main(int argc, char **argv)
 				ctlsock_path = optarg;
 			break;
 		case 'v':
-			for(i = 0, r = atoi(optarg); nf[i].version != -1; i++) {
-				if (nf[i].version == r)
+			for(i = 0, r = atoi(optarg); netflow_sender[i].version != -1; i++) {
+				if (netflow_sender[i].version == r)
 					break;
 			}
-			if (nf[i].version == -1) {
+			if (netflow_sender[i].version == -1) {
 				fprintf(stderr, "Invalid NetFlow version\n");
 				exit(1);
 			}
-			target.dialect = &nf[i];
+			target.dialect = &netflow_sender[i];
 			break;
 		case 's':
 			flowtrack.param.option.sample = atoi(optarg);
@@ -1880,8 +1878,7 @@ main(int argc, char **argv)
 				protocol = IPPROTO_SCTP;
 #endif
 			else {
-				fprintf(stderr, "Unknown transport layer protocol"
-				    "\n");
+				fprintf(stderr, "Unknown transport layer protocol\n");
 				usage();
 				exit(1);
 			}
@@ -1896,8 +1893,7 @@ main(int argc, char **argv)
 			else if (strcasecmp(optarg, "nano") == 0)
 				flowtrack.param.time_format = 'n';
 			else {
-				fprintf(stderr, "Unknown time format"
-				    "\n");
+				fprintf(stderr, "Unknown time format\n");
 				usage();
 				exit(1);
 			}

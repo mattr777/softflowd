@@ -560,8 +560,8 @@ ipfix_flow_to_flowset(const struct FLOW *flow, u_char *packet, u_int len,
 		struct IPFIX_SOFTFLOWD_DATA_V4 d4;
 		struct IPFIX_SOFTFLOWD_DATA_V6 d6;
 	} d[2];
-	struct IPFIX_SOFTFLOWD_DATA_COMMON *dc[2];
-	union IPFIX_SOFTFLOWD_DATA_TIME *dt[2];
+	struct IPFIX_SOFTFLOWD_DATA_COMMON *data_common[2];
+	union IPFIX_SOFTFLOWD_DATA_TIME *data_time[2];
 	u_int freclen, ret_len, nflows;
 
 	bzero(d, sizeof(d));
@@ -576,11 +576,11 @@ ipfix_flow_to_flowset(const struct FLOW *flow, u_char *packet, u_int len,
 		memcpy(&d[0].d4.destinationIPv4Address, &flow->addr[1].v4, 4);
 		memcpy(&d[1].d4.sourceIPv4Address, &flow->addr[1].v4, 4);
 		memcpy(&d[1].d4.destinationIPv4Address, &flow->addr[0].v4, 4);
-		dc[0] = &d[0].d4.c;
-		dc[1] = &d[1].d4.c;
-		dt[0] = &d[0].d4.t;
-		dt[1] = &d[1].d4.t;
-		dc[0]->ipVersion = dc[1]->ipVersion = 4;
+		data_common[0] = &d[0].d4.c;
+		data_common[1] = &d[1].d4.c;
+		data_time[0] = &d[0].d4.t;
+		data_time[1] = &d[1].d4.t;
+			data_common[0]->ipVersion = data_common[1]->ipVersion = 4;
 		break;
 	case AF_INET6:
 		freclen = sizeof(struct IPFIX_SOFTFLOWD_DATA_V6);
@@ -591,64 +591,64 @@ ipfix_flow_to_flowset(const struct FLOW *flow, u_char *packet, u_int len,
 		memcpy(&d[0].d6.destinationIPv6Address, &flow->addr[1].v6, 16);
 		memcpy(&d[1].d6.sourceIPv6Address, &flow->addr[1].v6, 16);
 		memcpy(&d[1].d6.destinationIPv6Address, &flow->addr[0].v6, 16);
-		dc[0] = &d[0].d6.c;
-		dc[1] = &d[1].d6.c;
-		dt[0] = &d[0].d6.t;
-		dt[1] = &d[1].d6.t;
-		dc[0]->ipVersion = dc[1]->ipVersion = 6;
+		data_common[0] = &d[0].d6.c;
+		data_common[1] = &d[1].d6.c;
+		data_time[0] = &d[0].d6.t;
+		data_time[1] = &d[1].d6.t;
+			data_common[0]->ipVersion = data_common[1]->ipVersion = 6;
 		break;
 	default:
 		return (-1);
 	}
 
 	if (param->time_format == 's') {
-		dt[0]->u32.start = dt[1]->u32.start = 
+		data_time[0]->u32.start = data_time[1]->u32.start =
 		    htonl(flow->flow_start.tv_sec);
-		dt[0]->u32.end = dt[1]->u32.end = 
+		data_time[0]->u32.end = data_time[1]->u32.end =
 		    htonl(flow->flow_last.tv_sec);
 	}
 #if defined(htobe64) || defined(HAVE_DECL_HTOBE64)
 	else if (param->time_format == 'm') { /* milliseconds */
-		dt[0]->u64.start = dt[1]->u64.start = 
+		data_time[0]->u64.start = data_time[1]->u64.start =
 		    htobe64((u_int64_t)flow->flow_start.tv_sec * 1000 + (u_int64_t)flow->flow_start.tv_usec / 1000);
-		dt[0]->u64.end = dt[1]->u64.end = 
+		data_time[0]->u64.end = data_time[1]->u64.end =
 		    htobe64((u_int64_t)flow->flow_last.tv_sec * 1000 + (u_int64_t)flow->flow_last.tv_usec / 1000);
 	} else if (param->time_format == 'M') { /* microseconds */
-	  dt[0]->u64.start = dt[1]->u64.start = 
+	  data_time[0]->u64.start = data_time[1]->u64.start =
 	    htobe64(((u_int64_t)flow->flow_start.tv_sec + JAN_1970) << 32 | (u_int32_t)(((u_int64_t)flow->flow_start.tv_usec << 32) / 1e6));
-	  dt[0]->u64.end = dt[1]->u64.end = 
+		data_time[0]->u64.end = data_time[1]->u64.end =
 	    htobe64(((u_int64_t)flow->flow_last.tv_sec + JAN_1970) << 32 | (u_int32_t)(((u_int64_t)flow->flow_last.tv_usec << 32) / 1e6));
 	} else if (param->time_format == 'n') { /* nanoseconds */
-	  dt[0]->u64.start = dt[1]->u64.start = 
+	  data_time[0]->u64.start = data_time[1]->u64.start =
 	    htobe64(((u_int64_t)flow->flow_start.tv_sec + JAN_1970) << 32 | (u_int32_t)(((u_int64_t)flow->flow_start.tv_usec << 32) / 1e9));
-	  dt[0]->u64.end = dt[1]->u64.end = 
+		data_time[0]->u64.end = data_time[1]->u64.end =
 	    htobe64(((u_int64_t)flow->flow_last.tv_sec + JAN_1970) << 32 | (u_int32_t)(((u_int64_t)flow->flow_last.tv_usec << 32) / 1e9));
 	}
 #endif
 	else {
-		dt[0]->u32.start = dt[1]->u32.start = 
+		data_time[0]->u32.start = data_time[1]->u32.start =
 		    htonl(timeval_sub_ms(&flow->flow_start, system_boot_time));
-		dt[0]->u32.end = dt[1]->u32.end = 
+		data_time[0]->u32.end = data_time[1]->u32.end =
 		    htonl(timeval_sub_ms(&flow->flow_last, system_boot_time));
 	}
-	dc[0]->octetDeltaCount = htonl(flow->octets[0]);
-	dc[1]->octetDeltaCount = htonl(flow->octets[1]);
-	dc[0]->packetDeltaCount = htonl(flow->packets[0]);
-	dc[1]->packetDeltaCount = htonl(flow->packets[1]);
-	dc[0]->ingressInterface = dc[0]->egressInterface = htonl(ifidx);
-	dc[1]->ingressInterface = dc[1]->egressInterface = htonl(ifidx);
-	dc[0]->sourceTransportPort = dc[1]->destinationTransportPort = flow->port[0];
-	dc[1]->sourceTransportPort = dc[0]->destinationTransportPort = flow->port[1];
-	dc[0]->protocolIdentifier = dc[1]->protocolIdentifier = flow->protocol;
-	dc[0]->tcpControlBits = flow->tcp_flags[0];
-	dc[1]->tcpControlBits = flow->tcp_flags[1];
-	dc[0]->ipClassOfService = flow->tos[0];
-	dc[1]->ipClassOfService = flow->tos[1];
+	data_common[0]->octetDeltaCount = htonl(flow->octets[0]);
+	data_common[1]->octetDeltaCount = htonl(flow->octets[1]);
+	data_common[0]->packetDeltaCount = htonl(flow->packets[0]);
+	data_common[1]->packetDeltaCount = htonl(flow->packets[1]);
+	data_common[0]->ingressInterface = data_common[0]->egressInterface = htonl(ifidx);
+	data_common[1]->ingressInterface = data_common[1]->egressInterface = htonl(ifidx);
+	data_common[0]->sourceTransportPort = data_common[1]->destinationTransportPort = flow->port[0];
+	data_common[1]->sourceTransportPort = data_common[0]->destinationTransportPort = flow->port[1];
+	data_common[0]->protocolIdentifier = data_common[1]->protocolIdentifier = flow->protocol;
+	data_common[0]->tcpControlBits = flow->tcp_flags[0];
+	data_common[1]->tcpControlBits = flow->tcp_flags[1];
+	data_common[0]->ipClassOfService = flow->tos[0];
+	data_common[1]->ipClassOfService = flow->tos[1];
 	if (flow->protocol == IPPROTO_ICMP || flow->protocol == IPPROTO_ICMPV6) {
-	  dc[0]->icmpTypeCode = dc[0]->destinationTransportPort;
-	  dc[1]->icmpTypeCode = dc[1]->destinationTransportPort;
+	  data_common[0]->icmpTypeCode = data_common[0]->destinationTransportPort;
+	  data_common[1]->icmpTypeCode = data_common[1]->destinationTransportPort;
 	}
-	dc[0]->vlanId = dc[1]->vlanId = htons(flow->vlanid);
+	data_common[0]->vlanId = data_common[1]->vlanId = htons(flow->vlanid);
 
 	if (flow->octets[0] > 0) {
 		if (ret_len + freclen > len)
